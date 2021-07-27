@@ -1,0 +1,1 @@
+docker run -d -e POSTGRES_USER=testusr -e POSTGRES_PASSWORD=password -e POSTGRES_DB=testdb -p 5433:5432 -v flask-app-db:/var/lib/postgresql/data postgres:10

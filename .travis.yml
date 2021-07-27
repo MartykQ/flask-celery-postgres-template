@@ -1,0 +1,19 @@
+language: python
+python: "3.6.8"
+
+install:
+  - pip install pytest
+  - pip install pytest-pylint
+  - pip install pytest-flake8
+  - pip install -r requirements.txt
+
+
+script:
+  - touch .env
+  - echo "export TOKEN = 'token'" >> .env
+  - cat .env
+  - pytest --flake8 --pylint --ignore=webapp/tests --ignore=webapp/common/settings.py
+
+branches:
+  only:
+    - master

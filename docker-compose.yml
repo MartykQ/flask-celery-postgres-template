@@ -1,0 +1,66 @@
+version: "3.7"
+services:
+  postgres:
+    container_name: webapp-postgres
+    image: postgres:10
+    environment:
+      - POSTGRES_USER=testusr
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=testdb
+    volumes:
+      - myvol:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+  app:
+    container_name: webapp-flask
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - FLASK_ENV=docker
+    ports:
+      - 5001:5000
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+      - redis
+      - celery-worker
+    entrypoint:
+      - /app/scripts/docker_script.sh
+  redis:
+    image: redis:6-alpine
+    container_name: webapp-redis
+    ports:
+      - 6390:6379
+  celery-worker:
+    container_name: webapp-celery-worker
+    command: celery worker -A scripts.run_celery:celery --loglevel=info --logfile=logs/celery.log -b redis://redis:6379 --result-backend redis://redis:6379 -B
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+    volumes:
+      - ./logs:/app/logs
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webapp-dashboard
+    command: celery flower --port=5555 --broker=redis://redis:6379/0
+    ports:
+      - 5556:5555
+    environment:
+      - FLASK_DEBUG=1
+      - APP_SETTINGS=web_app.common.settings.Development
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - app
+      - redis
+      - celery-worker
+
+volumes:
+  myvol:
+    name: myvol
